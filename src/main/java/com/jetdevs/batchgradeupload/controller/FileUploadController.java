@@ -4,6 +4,12 @@ import com.jetdevs.batchgradeupload.entity.GradeSheet;
 import com.jetdevs.batchgradeupload.entity.User;
 import com.jetdevs.batchgradeupload.repository.UserRepository;
 import com.jetdevs.batchgradeupload.service.FileUploadService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -28,6 +34,7 @@ import java.util.Optional;
  */
 @RestController
 @EnableMethodSecurity(securedEnabled = true)
+@Tag(name = "File Management APIs", description = "File Management")
 public class FileUploadController {
 
     @Autowired
@@ -43,6 +50,12 @@ public class FileUploadController {
      * @return Integer representing the ID of the uploaded file.
      * @throws IOException if an I/O error occurs while processing the file.
      */
+    @Operation(summary = "Upload a file", responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = Integer.class)))})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "File uploaded successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/file")
     @Secured({"Super Admin", "Admin", "User"})
     @ResponseBody
@@ -62,6 +75,13 @@ public class FileUploadController {
      * @param fileId The ID of the file.
      * @return String representing the status of the file.
      */
+    @Operation(summary = "Check file status", responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = String.class)))})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "File status retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "File not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/file/status/{fileId}")
     @Secured({"Super Admin", "Admin", "User"})
     @ResponseBody
@@ -80,6 +100,13 @@ public class FileUploadController {
      *
      * @return List of Strings representing the names of uploaded files.
      */
+
+    @Operation(summary = "List all uploaded files", responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = List.class)))})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Files listed successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/file/list")
     @Secured({"Super Admin", "Admin", "User"})
     @ResponseBody
@@ -99,6 +126,13 @@ public class FileUploadController {
      * @param fileId The ID of the file.
      * @return List of GradeSheet objects representing the contents of the file.
      */
+    @Operation(summary = "Retrieve file contents", responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = List.class)))})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "File contents retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "File not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/file/{fileId}")
     @Secured({"Super Admin", "Admin", "User"})
     @ResponseBody
@@ -117,6 +151,13 @@ public class FileUploadController {
      *
      * @param fileId The ID of the file to be deleted.
      */
+    @Operation(summary = "Delete a file", responses = {@ApiResponse(content = @Content(schema = @Schema(implementation = Void.class)))})
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "File deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "File not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @DeleteMapping("/file/{fileId}")
     @Secured({"Super Admin", "Admin"})
     @ResponseBody

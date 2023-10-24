@@ -64,7 +64,7 @@ public class FileUploadService {
         // Validate user and file
         Objects.requireNonNull(user, "User not found");
         if (!file.getOriginalFilename().endsWith(".xls") && !file.getOriginalFilename().endsWith(".xlsx")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Excel file required");
+            throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Excel file required");
         }
 
         // Create UploadedFile entity and save it to the database
@@ -154,12 +154,12 @@ public class FileUploadService {
         Objects.requireNonNull(user, "User not found");
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found");
         }
 
         // Check if user has access rights to the file
         if (user.getRole().getId() == 3 && Objects.equals(uploadedFile.getUser().getId(), user.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User don't have access to file");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User don't have access to file");
         }
 
         return uploadedFile.getStatus().getFileStatus();
@@ -203,12 +203,12 @@ public class FileUploadService {
         Objects.requireNonNull(user, "User not found");
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found");
         }
 
         // Check if user has access rights to the file
         if (user.getRole().getId() == 3 && Objects.equals(uploadedFile.getUser().getId(), user.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User don't have access to file");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User don't have access to file");
         }
 
         // Update last access time and create FileAccessLog entry
@@ -237,7 +237,7 @@ public class FileUploadService {
         // Retrieve the UploadedFile entity by fileId
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found");
         }
 
         // Mark the file as deleting
