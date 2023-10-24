@@ -1,11 +1,15 @@
 package com.jetdevs.batchgradeupload.service;
 
+import com.jetdevs.batchgradeupload.entity.FileAccessLog;
 import com.jetdevs.batchgradeupload.entity.GradeSheet;
 import com.jetdevs.batchgradeupload.entity.UploadedFile;
 import com.jetdevs.batchgradeupload.entity.User;
 import com.jetdevs.batchgradeupload.model.FileStatus;
+import com.jetdevs.batchgradeupload.repository.FileAccessLogRepository;
 import com.jetdevs.batchgradeupload.repository.GradeSheetRepository;
 import com.jetdevs.batchgradeupload.repository.UploadedFileRepository;
+import jakarta.annotation.Nullable;
+import jakarta.transaction.Transactional;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -23,9 +27,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Service
 public class FileUploadService {
@@ -35,9 +39,12 @@ public class FileUploadService {
     private UploadedFileRepository uploadedFileRepository;
     @Autowired
     private GradeSheetRepository gradeSheetRepository;
+    @Autowired
+    private FileAccessLogRepository fileAccessLogRepository;
 
-    public Integer saveFile(MultipartFile file, Optional<User> userOptional) throws ResponseStatusException, IOException {
-        if (userOptional.isEmpty()) {
+    @Transactional
+    public Integer saveFile(MultipartFile file, @Nullable User user) throws ResponseStatusException, IOException {
+        if (user == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
         }
         if (!file.getOriginalFilename().endsWith(".xls") && !file.getOriginalFilename().endsWith(".xlsx")) {
@@ -46,8 +53,9 @@ public class FileUploadService {
         UploadedFile fileEntity = new UploadedFile();
         fileEntity.setFileName(file.getOriginalFilename());
         fileEntity.setFile(file.getBytes());
-        fileEntity.setUser(userOptional.get());
+        fileEntity.setUser(user);
         fileEntity.setUploadedTime(new Date());
+        fileEntity.setLastAccessTime(new Date());
         fileEntity.setStatus(FileStatus.Uploaded);
         uploadedFileRepository.save(fileEntity);
         processExcelFileAsync(fileEntity, file);
@@ -102,11 +110,11 @@ public class FileUploadService {
         }
     }
 
-    public String fileStatus(Integer fileId, Optional<User> userOptional) {
-        if (userOptional.isEmpty()) {
+    @Transactional
+    public String fileStatus(Integer fileId, @Nullable User user) {
+        if (user == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
         }
-        User user = userOptional.get();
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
@@ -118,5 +126,74 @@ public class FileUploadService {
         }
 
         return uploadedFile.getStatus().getFileStatus();
+    }
+
+    @Transactional
+    public List<String> listFiles(@Nullable User user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
+        }
+        //check if user have role user
+        if (user.getRole().getId() == 3) {
+            return uploadedFileRepository.findByUser(user).stream().map(UploadedFile::getFileName).collect(Collectors.toList());
+        }
+
+        //for super admin and admin get all files
+        List<String> fileNames = new ArrayList<>();
+        for (UploadedFile file : uploadedFileRepository.findAll()) {
+            fileNames.add(file.getFileName());
+        }
+        return fileNames;
+    }
+
+    @Transactional
+    public List<GradeSheet> fileContents(Integer fileId, User user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
+        }
+        UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
+        if (uploadedFile == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
+        }
+
+
+        //check if user have role user
+        if (user.getRole().getId() == 3 && Objects.equals(uploadedFile.getUser().getId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User don't have access to file");
+        }
+
+        uploadedFile.setLastAccessTime(new Date());
+        uploadedFileRepository.save(uploadedFile);
+
+        FileAccessLog fileAccessLog = new FileAccessLog();
+        fileAccessLog.setFile(uploadedFile);
+        fileAccessLog.setUser(user);
+        fileAccessLog.setAccessTime(new Date());
+        fileAccessLogRepository.save(fileAccessLog);
+
+
+        return gradeSheetRepository.findByFile(uploadedFile);
+    }
+
+    @Transactional
+    public void deleteFile(Integer fileId) {
+
+        UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
+        if (uploadedFile == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
+        }
+
+        uploadedFile.setStatus(FileStatus.Deleting);
+        uploadedFileRepository.save(uploadedFile);
+
+        logger.info("Deleting file records for file - {}", fileId);
+        gradeSheetRepository.deleteByFile(uploadedFile);
+        logger.info("Deleted file records for file - {}", fileId);
+
+
+        logger.info("Deleting file - {}", fileId);
+        uploadedFileRepository.delete(uploadedFile);
+        logger.info("Deleted file - {}", fileId);
+
     }
 }

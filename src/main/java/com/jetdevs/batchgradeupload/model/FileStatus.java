@@ -4,7 +4,6 @@ public enum FileStatus {
     Uploaded,
     Dumped,
     Deleting,
-    Deleted,
     Error;
 
     public String getFileStatus() {
@@ -13,7 +12,6 @@ public enum FileStatus {
             case Uploaded -> "File under Processing";
             case Dumped -> "File successfully Processed";
             case Deleting -> "Deleting file";
-            case Deleted -> "Deleted file";
         };
     }
 }

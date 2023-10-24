@@ -1,5 +1,6 @@
 package com.jetdevs.batchgradeupload.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,5 +24,6 @@ public class GradeSheet {
 
     @ManyToOne
     @JoinColumn(name = "file_id")
+    @JsonIgnore
     private UploadedFile file;
 }

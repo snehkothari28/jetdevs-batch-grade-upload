@@ -25,6 +25,9 @@ public class UploadedFile {
     @NotNull
     private Date uploadedTime;
 
+    @NotNull
+    private Date lastAccessTime;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
