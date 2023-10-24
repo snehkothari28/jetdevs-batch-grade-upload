@@ -1,8 +1,10 @@
 package com.jetdevs.batchgradeupload.service;
 
+import com.jetdevs.batchgradeupload.entity.Role;
 import com.jetdevs.batchgradeupload.entity.User;
 import com.jetdevs.batchgradeupload.model.Roles;
 import com.jetdevs.batchgradeupload.model.UserDTO;
+import com.jetdevs.batchgradeupload.repository.RoleRepository;
 import com.jetdevs.batchgradeupload.repository.UserRepository;
 import com.jetdevs.batchgradeupload.util.Hmac512PasswordEncoder;
 import com.jetdevs.batchgradeupload.util.PasswordGeneratorUtil;
@@ -10,7 +12,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -22,18 +23,22 @@ import java.util.Optional;
 
 @Service
 public class UserManagementService {
+    private final Role userRole;
+    private final Role adminRole;
+    private final Role superAdminRole;
+    private final Hmac512PasswordEncoder hmac512PasswordEncoder;
     Logger logger = LoggerFactory.getLogger(UserManagementService.class);
     EntityManager entityManager;
-    private Hmac512PasswordEncoder hmac512PasswordEncoder;
-    @Autowired
     private UserRepository userRepository;
 
-    @Value("${default.role.id}")
-    private int defaultRoleId;
 
-    public UserManagementService(EntityManager entityManager, @Value("${password.salt}") String salt) {
+    public UserManagementService(EntityManager entityManager, @Value("${password.salt}") String salt, RoleRepository roleRepository, UserRepository userRepository) {
         this.entityManager = entityManager;
         this.hmac512PasswordEncoder = new Hmac512PasswordEncoder(salt);
+        this.userRepository = userRepository;
+        userRole = roleRepository.findById(3).orElseThrow(NullPointerException::new);
+        superAdminRole = roleRepository.findById(1).orElseThrow(NullPointerException::new);
+        adminRole = roleRepository.findById(2).orElseThrow(NullPointerException::new);
     }
 
     private static UserDTO mapToUserDto(UserDTO userDTO, String password, User user) {
@@ -60,7 +65,7 @@ public class UserManagementService {
             password = PasswordGeneratorUtil.generateSecureRandomPassword();
         String hashedPassword = getHashedPassword(password);
         user.setHashedPassword(hashedPassword);
-        user.setRoleId(defaultRoleId);
+        user.setRole(userRole);
         user.setStatus(true);
 
         try {
@@ -86,7 +91,7 @@ public class UserManagementService {
             throw new NullPointerException("No user with id " + userid + " present");
         }
         User user = userOptional.get();
-        user.setRoleId(1);
+        user.setRole(superAdminRole);
 
         try {
             userRepository.save(user);
@@ -124,7 +129,7 @@ public class UserManagementService {
             );
         }
 
-        user.setRoleId(role == Roles.ADMIN ? 2 : 3);
+        user.setRole(role == Roles.ADMIN ? adminRole : userRole);
         try {
             userRepository.save(user);
             logger.info("Assigned role to user with id {}", user.getId());

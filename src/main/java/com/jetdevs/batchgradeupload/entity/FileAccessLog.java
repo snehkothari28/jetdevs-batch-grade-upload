@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
 import java.util.Date;
@@ -15,10 +17,14 @@ public class FileAccessLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private int fileId;
+    @ManyToOne
+    @JoinColumn(name = "file_id")
+    private UploadedFile file;
 
     private Date accessTime;
 
-    private int userId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
 }

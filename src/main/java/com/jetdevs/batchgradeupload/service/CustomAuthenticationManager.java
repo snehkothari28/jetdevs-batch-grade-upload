@@ -49,7 +49,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             throw new BadCredentialsException("Details not found");
         }
         if (encoder.matches(password, user.getHashedPassword())) {
-            Role role = roleRepository.findById(user.getRoleId()).orElse(new Role());
+            Role role = user.getRole();
             List<GrantedAuthority> grantedAuthorityList = new ArrayList<>();
             grantedAuthorityList.add(new SimpleGrantedAuthority(role.getName()));
             logger.info("Successfully Authenticated the user");
