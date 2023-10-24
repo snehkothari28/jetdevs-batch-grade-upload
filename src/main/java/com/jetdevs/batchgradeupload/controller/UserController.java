@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,10 +17,17 @@ public class UserController {
     @Autowired
     private UserManagementService userManagementService;
 
-    @PostMapping("/user/add")
+    @PostMapping("/user")
     @Secured({"Super Admin", "Admin"})
     @ResponseBody
     UserDTO createUser(final @RequestBody UserDTO userDTO) {
         return userManagementService.createUser(userDTO);
+    }
+
+    @PutMapping("/user")
+    @Secured({"Super Admin"})
+    @ResponseBody
+    UserDTO changeRole(final @RequestBody UserDTO userDTO) {
+        return userManagementService.changeRole(userDTO); // make admin
     }
 }

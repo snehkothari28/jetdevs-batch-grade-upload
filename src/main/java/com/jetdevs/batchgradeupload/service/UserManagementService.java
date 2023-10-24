@@ -1,6 +1,7 @@
 package com.jetdevs.batchgradeupload.service;
 
 import com.jetdevs.batchgradeupload.entity.User;
+import com.jetdevs.batchgradeupload.model.Roles;
 import com.jetdevs.batchgradeupload.model.UserDTO;
 import com.jetdevs.batchgradeupload.repository.UserRepository;
 import com.jetdevs.batchgradeupload.util.Hmac512PasswordEncoder;
@@ -35,6 +36,14 @@ public class UserManagementService {
         this.hmac512PasswordEncoder = new Hmac512PasswordEncoder(salt);
     }
 
+    private static UserDTO mapToUserDto(UserDTO userDTO, String password, User user) {
+        UserDTO response = new UserDTO();
+        response.setPassword(password);
+        response.setName(userDTO.getName());
+        response.setId(user.getId());
+        return response;
+    }
+
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
         logger.info("Received request to create user {}", userDTO);
@@ -57,11 +66,7 @@ public class UserManagementService {
         try {
             userRepository.save(user);
             logger.info("Created user with id {}", user.getId());
-            UserDTO response = new UserDTO();
-            response.setPassword(password);
-            response.setName(userDTO.getName());
-            response.setId(user.getId());
-            return response;
+            return mapToUserDto(userDTO, password, user);
         } catch (DataAccessException e) {
             logger.error("Failed creating user");
             throw new ResponseStatusException(
@@ -72,7 +77,7 @@ public class UserManagementService {
 
     @Transactional
     public void makeUserSuperAdmin(Integer userid) {
-        logger.info("Received request to make role {} superadmin", userid);
+        logger.info("Received request to make user {} - superadmin", userid);
 
         Optional<User> userOptional = userRepository.findById(userid);
 
@@ -89,7 +94,7 @@ public class UserManagementService {
         } catch (DataAccessException e) {
             logger.error("Failed assigning superadmin role to user with id {}", user.getId());
             throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR, "Failed creating user", e
+                    HttpStatus.INTERNAL_SERVER_ERROR, "Failed assigning role", e
             );
         }
     }
@@ -100,5 +105,35 @@ public class UserManagementService {
 
     private boolean checkIfSameUserExists(String username) {
         return userRepository.findByName(username).isPresent();
+    }
+
+    public UserDTO changeRole(UserDTO userDTO) {
+        logger.info("Received request to make user {} - {}", userDTO.getName(), userDTO.getRole());
+        User user = userRepository.findByName(userDTO.getName()).orElse(null);
+        Roles role = userDTO.getRole();
+        if (role == Roles.SUPER_ADMIN) {
+            logger.error("Setting role {} not allowed", userDTO.getRole());
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Incorrect role"
+            );
+        }
+        if (user == null) {
+            logger.error("User of name {} doesn't exists", userDTO.getName());
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "User doesn't exists"
+            );
+        }
+
+        user.setRoleId(role == Roles.ADMIN ? 2 : 3);
+        try {
+            userRepository.save(user);
+            logger.info("Assigned role to user with id {}", user.getId());
+            return mapToUserDto(userDTO, null, user);
+        } catch (DataAccessException e) {
+            logger.error("Failed assigning role to user with id {}", user.getId());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR, "Failed assigning role", e
+            );
+        }
     }
 }

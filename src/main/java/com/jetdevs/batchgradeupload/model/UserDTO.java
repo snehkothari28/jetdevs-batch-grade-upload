@@ -14,5 +14,5 @@ public class UserDTO {
     private Boolean status;
     @ToString.Exclude // Exclude password from printing in logs
     private String password;
-    private Integer roleId; // default role id will be user when creating role
+    private Roles role; // default role id will be user when creating role
 }
