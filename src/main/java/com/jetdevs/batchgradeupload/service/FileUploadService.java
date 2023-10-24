@@ -56,7 +56,7 @@ public class FileUploadService {
         fileEntity.setUser(user);
         fileEntity.setUploadedTime(new Date());
         fileEntity.setLastAccessTime(new Date());
-        fileEntity.setStatus(FileStatus.Uploaded);
+        fileEntity.setStatus(FileStatus.UPLOADED);
         uploadedFileRepository.save(fileEntity);
         processExcelFileAsync(fileEntity, file);
         logger.info("File save successful");
@@ -73,10 +73,10 @@ public class FileUploadService {
                 processAndSaveDataFromExcel(workbook, uploadedFile);
 
                 workbook.close();
-                uploadedFile.setStatus(FileStatus.Dumped);
+                uploadedFile.setStatus(FileStatus.DUMPED);
                 logger.info("Converting Successful");
             } catch (Exception e) {
-                uploadedFile.setStatus(FileStatus.Error);
+                uploadedFile.setStatus(FileStatus.ERROR);
                 // Handle exceptions appropriately (log or throw further)
                 logger.error("Error converting file", e);
             }
@@ -183,7 +183,7 @@ public class FileUploadService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
         }
 
-        uploadedFile.setStatus(FileStatus.Deleting);
+        uploadedFile.setStatus(FileStatus.DELETING);
         uploadedFileRepository.save(uploadedFile);
 
         logger.info("Deleting file records for file - {}", fileId);
