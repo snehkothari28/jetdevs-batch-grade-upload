@@ -14,6 +14,7 @@ import java.util.Base64;
 
 public class Hmac512PasswordEncoder implements PasswordEncoder {
 
+    private static final String SSHA512_PREFIX = "{SSHA-512}";
     private static final String HMAC_SHA512 = "HmacSHA512";
     private final String salt;
     Logger logger = LoggerFactory.getLogger(Hmac512PasswordEncoder.class);
@@ -35,7 +36,7 @@ public class Hmac512PasswordEncoder implements PasswordEncoder {
             sha512Hmac.init(keySpec);
             byte[] macData = sha512Hmac.doFinal(Utf8.encode(rawPassword.toString()));
 
-            result = Base64.getEncoder().encodeToString(macData);
+            result = SSHA512_PREFIX + Base64.getEncoder().encodeToString(macData);
         } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             logger.error("Error encoding password", e);
         }
@@ -48,8 +49,12 @@ public class Hmac512PasswordEncoder implements PasswordEncoder {
             return false;
         }
 
-        String encodedRawPass = encode(rawPassword);
-
+        String encodedRawPass = extractEncodedPassword(encode(rawPassword));
         return MessageDigest.isEqual(Utf8.encode(encodedRawPass), Utf8.encode(encodedPassword));
+    }
+
+    private String extractEncodedPassword(String prefixEncodedPassword) {
+        int start = prefixEncodedPassword.indexOf(SSHA512_PREFIX);
+        return prefixEncodedPassword.substring(start + SSHA512_PREFIX.length());
     }
 }

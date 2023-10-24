@@ -22,19 +22,23 @@ public class BatchGradeUploadApplication implements CommandLineRunner {
         SpringApplication.run(BatchGradeUploadApplication.class, args);
     }
 
-    @Override
-    public void run(String... args) throws Exception {
-
+    private void initializeDatabase() {
         createRoles();
         createSuperAdmin();
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+//        initializeDatabase();
 
     }
 
     private void createSuperAdmin() {
+        // Temporary hardcoded super admin user
         UserDTO userDTO = new UserDTO();
         userDTO.setName("Sneh");
         userDTO.setPassword("sneh1234");
-        Integer userId = userManagementService.createUser(userDTO);
+        Integer userId = userManagementService.createUser(userDTO).getId();
         userManagementService.makeUserSuperAdmin(userId);
     }
 

@@ -5,7 +5,6 @@ import com.jetdevs.batchgradeupload.model.UserDTO;
 import com.jetdevs.batchgradeupload.repository.UserRepository;
 import com.jetdevs.batchgradeupload.util.Hmac512PasswordEncoder;
 import com.jetdevs.batchgradeupload.util.PasswordGeneratorUtil;
-import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -37,11 +36,20 @@ public class UserManagementService {
     }
 
     @Transactional
-    public Integer createUser(UserDTO userDTO) {
+    public UserDTO createUser(UserDTO userDTO) {
         logger.info("Received request to create user {}", userDTO);
+        if (checkIfSameUserExists(userDTO.getName())) {
+            logger.error("User of name {} already exists", userDTO.getName());
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "User of already exists"
+            );
+        }
         User user = new User();
         user.setName(userDTO.getName());
-        String hashedPassword = getHashedPassword(userDTO.getPassword());
+        String password = userDTO.getPassword();
+        if (password == null)
+            password = PasswordGeneratorUtil.generateSecureRandomPassword();
+        String hashedPassword = getHashedPassword(password);
         user.setHashedPassword(hashedPassword);
         user.setRoleId(defaultRoleId);
         user.setStatus(true);
@@ -49,7 +57,11 @@ public class UserManagementService {
         try {
             userRepository.save(user);
             logger.info("Created user with id {}", user.getId());
-            return user.getId();
+            UserDTO response = new UserDTO();
+            response.setPassword(password);
+            response.setName(userDTO.getName());
+            response.setId(user.getId());
+            return response;
         } catch (DataAccessException e) {
             logger.error("Failed creating user");
             throw new ResponseStatusException(
@@ -82,10 +94,11 @@ public class UserManagementService {
         }
     }
 
-    private String getHashedPassword(@Nullable String password) {
-        if (password == null)
-            password = PasswordGeneratorUtil.generateSecureRandomPassword();
+    private String getHashedPassword(String password) {
         return hmac512PasswordEncoder.encode(password);
     }
 
+    private boolean checkIfSameUserExists(String username) {
+        return userRepository.findByName(username).isPresent();
+    }
 }
