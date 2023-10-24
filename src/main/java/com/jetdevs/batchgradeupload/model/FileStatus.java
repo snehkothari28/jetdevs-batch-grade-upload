@@ -4,5 +4,6 @@ public enum FileStatus {
     Uploaded,
     Dumped,
     Deleting,
-    Deleted
+    Deleted,
+    Error
 }

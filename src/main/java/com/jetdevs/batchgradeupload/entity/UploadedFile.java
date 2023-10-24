@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.Date;
@@ -19,6 +20,7 @@ public class UploadedFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @NotNull
     private Date uploadedTime;
 
     @ManyToOne
@@ -27,6 +29,7 @@ public class UploadedFile {
 
     @Lob
     private byte[] file;
+    private String fileName;
 
     private FileStatus status;
 }
