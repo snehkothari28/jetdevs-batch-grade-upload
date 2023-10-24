@@ -31,25 +31,43 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+/**
+ * Service class handling file upload and processing operations.
+ */
 @Service
 public class FileUploadService {
-    private final ExecutorService executorService = Executors.newFixedThreadPool(5); // You can adjust the number of threads as needed
+
+    // Executor service to handle asynchronous file processing
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
     Logger logger = LoggerFactory.getLogger(FileUploadService.class);
+
     @Autowired
     private UploadedFileRepository uploadedFileRepository;
+
     @Autowired
     private GradeSheetRepository gradeSheetRepository;
+
     @Autowired
     private FileAccessLogRepository fileAccessLogRepository;
 
+    /**
+     * Saves the uploaded file and initiates asynchronous processing.
+     *
+     * @param file The uploaded file.
+     * @param user The user uploading the file.
+     * @return The ID of the saved file entity.
+     * @throws ResponseStatusException If user or file is not found, or incorrect file format.
+     * @throws IOException             If an error occurs while reading the file.
+     */
     @Transactional
     public Integer saveFile(MultipartFile file, @Nullable User user) throws ResponseStatusException, IOException {
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
-        }
+        // Validate user and file
+        Objects.requireNonNull(user, "User not found");
         if (!file.getOriginalFilename().endsWith(".xls") && !file.getOriginalFilename().endsWith(".xlsx")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Excel file required");
         }
+
+        // Create UploadedFile entity and save it to the database
         UploadedFile fileEntity = new UploadedFile();
         fileEntity.setFileName(file.getOriginalFilename());
         fileEntity.setFile(file.getBytes());
@@ -58,20 +76,27 @@ public class FileUploadService {
         fileEntity.setLastAccessTime(new Date());
         fileEntity.setStatus(FileStatus.UPLOADED);
         uploadedFileRepository.save(fileEntity);
+
+        // Initiate asynchronous processing of the file
         processExcelFileAsync(fileEntity, file);
+
         logger.info("File save successful");
         return fileEntity.getId();
     }
 
+    /**
+     * Asynchronously processes the Excel file and saves data to the database.
+     *
+     * @param uploadedFile  The UploadedFile entity associated with the Excel file.
+     * @param multipartFile The Excel file.
+     */
     private void processExcelFileAsync(UploadedFile uploadedFile, MultipartFile multipartFile) {
         executorService.submit(() -> {
             try {
                 logger.info("Converting file");
                 // Read and process the Excel file using Apache POI
                 Workbook workbook = WorkbookFactory.create(multipartFile.getInputStream());
-
                 processAndSaveDataFromExcel(workbook, uploadedFile);
-
                 workbook.close();
                 uploadedFile.setStatus(FileStatus.DUMPED);
                 logger.info("Converting Successful");
@@ -84,43 +109,55 @@ public class FileUploadService {
         });
     }
 
-    private void processAndSaveDataFromExcel(Workbook workbook, UploadedFile file) {
+    /**
+     * Processes and saves data from the Excel workbook to the database.
+     *
+     * @param workbook     The Excel workbook to process.
+     * @param uploadedFile The UploadedFile entity associated with the workbook.
+     */
+    private void processAndSaveDataFromExcel(Workbook workbook, UploadedFile uploadedFile) {
         Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
-
         List<GradeSheet> gradeSheetList = new ArrayList<>();
 
         // Iterate through rows starting from the second row (index 1)
         for (int rowIndex = 1; rowIndex < sheet.getPhysicalNumberOfRows(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
             if (row != null) {
-
                 int enrollmentNumber = (int) row.getCell(0).getNumericCellValue();
                 int grade = (int) row.getCell(1).getNumericCellValue();
                 String subject = row.getCell(2).getStringCellValue();
 
-                // Create a new entity and save it to the database
+                // Create a new GradeSheet entity and save it to the list
                 GradeSheet gradeSheet = new GradeSheet();
-                gradeSheet.setFile(file);
+                gradeSheet.setFile(uploadedFile);
                 gradeSheet.setEnrollmentNumber(enrollmentNumber);
                 gradeSheet.setGrade(grade);
                 gradeSheet.setSubject(subject);
                 gradeSheetList.add(gradeSheet);
             }
-            gradeSheetRepository.saveAll(gradeSheetList);
         }
+
+        // Save all GradeSheet entities to the database
+        gradeSheetRepository.saveAll(gradeSheetList);
     }
 
+    /**
+     * Retrieves the status of the specified uploaded file for the given user.
+     *
+     * @param fileId The ID of the uploaded file.
+     * @param user   The user requesting the file status.
+     * @return The status of the uploaded file (FileStatus).
+     * @throws ResponseStatusException If the user doesn't have access to the file or the file is not found.
+     */
     @Transactional
     public String fileStatus(Integer fileId, @Nullable User user) {
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
-        }
+        Objects.requireNonNull(user, "User not found");
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
         }
 
-        //check if user have role user
+        // Check if user has access rights to the file
         if (user.getRole().getId() == 3 && Objects.equals(uploadedFile.getUser().getId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User don't have access to file");
         }
@@ -128,72 +165,90 @@ public class FileUploadService {
         return uploadedFile.getStatus().getFileStatus();
     }
 
+    /**
+     * Lists the names of files accessible to the given user.
+     *
+     * @param user The user requesting the file list.
+     * @return List of file names accessible to the user.
+     * @throws ResponseStatusException If the user is not found.
+     */
     @Transactional
     public List<String> listFiles(@Nullable User user) {
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
-        }
-        //check if user have role user
-        if (user.getRole().getId() == 3) {
-            return uploadedFileRepository.findByUser(user).stream().map(UploadedFile::getFileName).collect(Collectors.toList());
-        }
+        Objects.requireNonNull(user, "User not found");
 
-        //for super admin and admin get all files
-        List<String> fileNames = new ArrayList<>();
-        for (UploadedFile file : uploadedFileRepository.findAll()) {
-            fileNames.add(file.getFileName());
+        // Check user role and retrieve corresponding files
+        if (user.getRole().getId() == 3) {
+            // For regular users, return their specific files
+            return uploadedFileRepository.findByUser(user).stream().map(UploadedFile::getFileName).collect(Collectors.toList());
+        } else {
+            // For admin users, return all files
+            List<String> fileNames = new ArrayList<>();
+            for (UploadedFile file : uploadedFileRepository.findAll()) {
+                fileNames.add(file.getFileName());
+            }
+            return fileNames;
         }
-        return fileNames;
     }
 
+    /**
+     * Retrieves the contents of the specified uploaded file for the given user.
+     *
+     * @param fileId The ID of the uploaded file.
+     * @param user   The user requesting the file contents.
+     * @return List of GradeSheet entities representing the contents of the file.
+     * @throws ResponseStatusException If the user doesn't have access to the file or the file is not found.
+     */
     @Transactional
     public List<GradeSheet> fileContents(Integer fileId, User user) {
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
-        }
+        Objects.requireNonNull(user, "User not found");
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
         }
 
-
-        //check if user have role user
+        // Check if user has access rights to the file
         if (user.getRole().getId() == 3 && Objects.equals(uploadedFile.getUser().getId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User don't have access to file");
         }
 
+        // Update last access time and create FileAccessLog entry
         uploadedFile.setLastAccessTime(new Date());
         uploadedFileRepository.save(uploadedFile);
 
+        // Log file access
         FileAccessLog fileAccessLog = new FileAccessLog();
         fileAccessLog.setFile(uploadedFile);
         fileAccessLog.setUser(user);
         fileAccessLog.setAccessTime(new Date());
         fileAccessLogRepository.save(fileAccessLog);
 
-
+        // Retrieve and return the GradeSheet entities associated with the file
         return gradeSheetRepository.findByFile(uploadedFile);
     }
 
+    /**
+     * Deletes the specified uploaded file and its associated records from the database.
+     *
+     * @param fileId The ID of the uploaded file to be deleted.
+     * @throws ResponseStatusException If the file is not found.
+     */
     @Transactional
     public void deleteFile(Integer fileId) {
-
+        // Retrieve the UploadedFile entity by fileId
         UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
         if (uploadedFile == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
         }
 
+        // Mark the file as deleting
         uploadedFile.setStatus(FileStatus.DELETING);
         uploadedFileRepository.save(uploadedFile);
 
-        logger.info("Deleting file records for file - {}", fileId);
+        // Delete GradeSheet records associated with the file
         gradeSheetRepository.deleteByFile(uploadedFile);
-        logger.info("Deleted file records for file - {}", fileId);
 
-
-        logger.info("Deleting file - {}", fileId);
+        // Delete the UploadedFile entity
         uploadedFileRepository.delete(uploadedFile);
-        logger.info("Deleted file - {}", fileId);
-
     }
 }
+

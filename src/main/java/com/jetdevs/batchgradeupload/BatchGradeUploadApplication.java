@@ -22,39 +22,50 @@ public class BatchGradeUploadApplication implements CommandLineRunner {
         SpringApplication.run(BatchGradeUploadApplication.class, args);
     }
 
-    private void initializeDatabase() {
-        createRoles();
-        createSuperAdmin();
-    }
-
+    // CommandLineRunner interface method to run the application logic
     @Override
     public void run(String... args) throws Exception {
-//        initializeDatabase();
-
+        // Uncomment the next line to initialize the database with roles and a super admin user
+        // initializeDatabase();
     }
 
+    // Method to initialize the database with roles and a super admin user
+    private void initializeDatabase() {
+        createRoles();       // Create roles: Super Admin, Admin, User
+        createSuperAdmin();  // Create a super admin user and assign the super admin role
+    }
+
+    // Method to create a super admin user and assign the super admin role
     private void createSuperAdmin() {
-        // Temporary hardcoded super admin user
+        // Temporary hardcoded super admin user credentials
         UserDTO userDTO = new UserDTO();
         userDTO.setName("Sneh");
         userDTO.setPassword("sneh1234");
+
+        // Create the user and obtain the user's ID
         Integer userId = userManagementService.createUser(userDTO).getId();
+
+        // Assign the super admin role to the user
         userManagementService.makeUserSuperAdmin(userId);
     }
 
+    // Method to create roles (Super Admin, Admin, User) in the database
     private void createRoles() {
+        // Create Super Admin role
         Role role = new Role();
         role.setId(1);
         role.setName("Super Admin");
         role.setStatus(true);
         roleRepository.save(role);
 
+        // Create Admin role
         role = new Role();
         role.setId(2);
         role.setName("Admin");
         role.setStatus(true);
         roleRepository.save(role);
 
+        // Create User role
         role = new Role();
         role.setId(3);
         role.setName("User");
