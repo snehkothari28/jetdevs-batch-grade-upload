@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -99,5 +100,23 @@ public class FileUploadService {
             }
             gradeSheetRepository.saveAll(gradeSheetList);
         }
+    }
+
+    public String fileStatus(Integer fileId, Optional<User> userOptional) {
+        if (userOptional.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
+        }
+        User user = userOptional.get();
+        UploadedFile uploadedFile = uploadedFileRepository.findById(fileId).orElse(null);
+        if (uploadedFile == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found");
+        }
+
+        //check if user have role user
+        if (user.getRole().getId() == 3 && Objects.equals(uploadedFile.getUser().getId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User don't have access to file");
+        }
+
+        return uploadedFile.getStatus().getFileStatus();
     }
 }

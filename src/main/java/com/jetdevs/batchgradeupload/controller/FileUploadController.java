@@ -8,6 +8,8 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -36,6 +38,18 @@ public class FileUploadController {
         Optional<User> user = userRepository.findByName(username);
 
         return fileUploadService.saveFile(file, user);
+    }
+
+    @GetMapping("/file/{fileId}")
+    @Secured({"Super Admin", "Admin", "User"})
+    @ResponseBody
+    String fileStatus(@PathVariable Integer fileId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        Optional<User> user = userRepository.findByName(username);
+
+        return fileUploadService.fileStatus(fileId, user);
     }
 
 }

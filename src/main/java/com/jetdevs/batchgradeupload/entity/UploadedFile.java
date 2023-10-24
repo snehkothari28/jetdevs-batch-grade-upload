@@ -2,6 +2,8 @@ package com.jetdevs.batchgradeupload.entity;
 
 import com.jetdevs.batchgradeupload.model.FileStatus;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,5 +33,6 @@ public class UploadedFile {
     private byte[] file;
     private String fileName;
 
+    @Enumerated(EnumType.STRING)
     private FileStatus status;
 }
