@@ -14,7 +14,7 @@ import java.util.Date;
 @Data
 public class UploadedFile {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     private Date uploadedTime;
