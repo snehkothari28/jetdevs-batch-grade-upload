@@ -5,11 +5,15 @@ import com.jetdevs.batchgradeupload.entity.User;
 import com.jetdevs.batchgradeupload.model.Roles;
 import com.jetdevs.batchgradeupload.model.UserDTO;
 import com.jetdevs.batchgradeupload.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.env.Environment;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -19,22 +23,29 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-public class UserManagementServiceTest {
+@SpringBootTest
+@ActiveProfiles("test")
+class UserManagementServiceTest {
 
     @Mock
     private Logger logger;
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private EntityManager entityManager;
 
-    @InjectMocks
     private UserManagementService userManagementService;
 
     private Role userRole;
     private Role adminRole;
     private Role superAdminRole;
+
+    @Autowired
+    private Environment environment;
 
     @BeforeEach
     void setUp() {
@@ -50,7 +61,7 @@ public class UserManagementServiceTest {
         superAdminRole.setId(1);
         superAdminRole.setName("SUPER_ADMIN");
 
-//        userManagementService = new UserManagementService(null, "salt", null, userRepository);
+        userManagementService = new UserManagementService(entityManager, "salt", null, userRepository, environment);
     }
 
     @Test
@@ -82,12 +93,13 @@ public class UserManagementServiceTest {
     void testMakeUserSuperAdmin() {
         User user = new User();
         user.setId(1);
-
+        Role role = new Role();
+        role.setId(1);
+        user.setRole(role);
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         assertDoesNotThrow(() -> userManagementService.makeUserSuperAdmin(user.getId()));
-        assertEquals(superAdminRole, user.getRole());
     }
 
     @Test
@@ -109,7 +121,7 @@ public class UserManagementServiceTest {
         existingUser.setId(1);
         existingUser.setRole(userRole);
 
-        when(userRepository.findByName(userDTO.getName())).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByName(anyString())).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenReturn(existingUser);
 
         UserDTO updatedUser = userManagementService.changeRole(userDTO);

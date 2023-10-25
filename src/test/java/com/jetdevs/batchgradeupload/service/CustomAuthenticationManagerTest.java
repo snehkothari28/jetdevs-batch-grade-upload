@@ -12,13 +12,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class CustomAuthenticationManagerTest {
 
     @Mock
@@ -64,7 +65,7 @@ class CustomAuthenticationManagerTest {
 
         when(userRepository.findByName(username)).thenReturn(java.util.Optional.empty());
 
-        assertThrows(UsernameNotFoundException.class,
+        assertThrows(BadCredentialsException.class,
                 () -> authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password)));
     }
 
