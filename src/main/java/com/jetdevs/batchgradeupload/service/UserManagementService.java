@@ -54,9 +54,9 @@ public class UserManagementService {
 
         if (!environment.matchesProfiles("test")) {
             // Initialize roles from the repository
-            userRole = roleRepository.findById(3).orElseThrow(NullPointerException::new);
-            superAdminRole = roleRepository.findById(1).orElseThrow(NullPointerException::new);
-            adminRole = roleRepository.findById(2).orElseThrow(NullPointerException::new);
+            userRole = roleRepository.findById(3).orElse(new Role());
+            superAdminRole = roleRepository.findById(1).orElse(new Role());
+            adminRole = roleRepository.findById(2).orElse(new Role());
         }
     }
 

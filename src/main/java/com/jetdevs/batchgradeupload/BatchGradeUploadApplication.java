@@ -26,7 +26,7 @@ public class BatchGradeUploadApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // Uncomment the next line to initialize the database with roles and a super admin user
-        // initializeDatabase();
+//        initializeDatabase();
     }
 
     // Method to initialize the database with roles and a super admin user
@@ -41,7 +41,6 @@ public class BatchGradeUploadApplication implements CommandLineRunner {
         UserDTO userDTO = new UserDTO();
         userDTO.setName("Sneh");
         userDTO.setPassword("sneh1234");
-
         // Create the user and obtain the user's ID
         Integer userId = userManagementService.createUser(userDTO).getId();
 
