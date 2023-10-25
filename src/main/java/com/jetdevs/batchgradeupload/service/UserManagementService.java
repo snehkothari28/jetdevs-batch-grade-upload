@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,37 +27,53 @@ import java.util.Optional;
 @Service
 public class UserManagementService {
 
-    // Roles available in the system
-    private final Role userRole;
-    private final Role adminRole;
-    private final Role superAdminRole;
-
     // Password encoder using HMAC-SHA-512 algorithm
     private final Hmac512PasswordEncoder hmac512PasswordEncoder;
+    private final UserRepository userRepository;
     Logger logger = LoggerFactory.getLogger(UserManagementService.class);
-
     // Entity manager for database operations
     EntityManager entityManager;
-    private final UserRepository userRepository;
+    // Roles available in the system
+    private Role userRole;
+    private Role adminRole;
+    private Role superAdminRole;
 
     /**
      * Constructor for UserManagementService.
      *
-     * @param entityManager   Entity manager for database operations.
-     * @param salt            Salt value for password hashing.
-     * @param roleRepository  Repository for accessing role data.
-     * @param userRepository  Repository for accessing user data.
+     * @param entityManager  Entity manager for database operations.
+     * @param salt           Salt value for password hashing.
+     * @param roleRepository Repository for accessing role data.
+     * @param userRepository Repository for accessing user data.
      */
-    public UserManagementService(EntityManager entityManager, @Value("${password.salt}") String salt,
-                                 RoleRepository roleRepository, UserRepository userRepository) {
+    public UserManagementService(EntityManager entityManager, @Value("${password.salt}") String salt, RoleRepository roleRepository, UserRepository userRepository, Environment environment) {
         this.entityManager = entityManager;
         this.hmac512PasswordEncoder = new Hmac512PasswordEncoder(salt);
         this.userRepository = userRepository;
 
-        // Initialize roles from the repository
-        userRole = roleRepository.findById(3).orElseThrow(NullPointerException::new);
-        superAdminRole = roleRepository.findById(1).orElseThrow(NullPointerException::new);
-        adminRole = roleRepository.findById(2).orElseThrow(NullPointerException::new);
+
+        if (!environment.matchesProfiles("test")) {
+            // Initialize roles from the repository
+            userRole = roleRepository.findById(3).orElseThrow(NullPointerException::new);
+            superAdminRole = roleRepository.findById(1).orElseThrow(NullPointerException::new);
+            adminRole = roleRepository.findById(2).orElseThrow(NullPointerException::new);
+        }
+    }
+
+    /**
+     * Maps UserDTO to User entity, sets the password, and creates a UserDTO object.
+     *
+     * @param userDTO  UserDTO object containing user data.
+     * @param password Password for initial communication.
+     * @param user     User entity.
+     * @return UserDTO object containing user data.
+     */
+    private static UserDTO mapToUserDto(UserDTO userDTO, String password, User user) {
+        UserDTO response = new UserDTO();
+        response.setPassword(password);
+        response.setName(userDTO.getName());
+        response.setId(user.getId());
+        return response;
     }
 
     /**
@@ -202,21 +219,5 @@ public class UserManagementService {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Failed assigning role.", e
             );
         }
-    }
-
-    /**
-     * Maps UserDTO to User entity, sets the password, and creates a UserDTO object.
-     *
-     * @param userDTO  UserDTO object containing user data.
-     * @param password Password for initial communication.
-     * @param user     User entity.
-     * @return UserDTO object containing user data.
-     */
-    private static UserDTO mapToUserDto(UserDTO userDTO, String password, User user) {
-        UserDTO response = new UserDTO();
-        response.setPassword(password);
-        response.setName(userDTO.getName());
-        response.setId(user.getId());
-        return response;
     }
 }

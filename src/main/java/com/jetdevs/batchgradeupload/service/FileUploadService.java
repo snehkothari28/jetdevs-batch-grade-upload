@@ -16,7 +16,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,16 +38,16 @@ public class FileUploadService {
 
     // Executor service to handle asynchronous file processing
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+    private final UploadedFileRepository uploadedFileRepository;
+    private final GradeSheetRepository gradeSheetRepository;
+    private final FileAccessLogRepository fileAccessLogRepository;
     Logger logger = LoggerFactory.getLogger(FileUploadService.class);
 
-    @Autowired
-    private UploadedFileRepository uploadedFileRepository;
-
-    @Autowired
-    private GradeSheetRepository gradeSheetRepository;
-
-    @Autowired
-    private FileAccessLogRepository fileAccessLogRepository;
+    public FileUploadService(UploadedFileRepository uploadedFileRepository, GradeSheetRepository gradeSheetRepository, FileAccessLogRepository fileAccessLogRepository) {
+        this.uploadedFileRepository = uploadedFileRepository;
+        this.gradeSheetRepository = gradeSheetRepository;
+        this.fileAccessLogRepository = fileAccessLogRepository;
+    }
 
     /**
      * Saves the uploaded file and initiates asynchronous processing.

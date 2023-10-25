@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.Authentication;
@@ -37,11 +36,13 @@ import java.util.Optional;
 @Tag(name = "File Management APIs", description = "File Management")
 public class FileUploadController {
 
-    @Autowired
-    private FileUploadService fileUploadService;
+    private final FileUploadService fileUploadService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public FileUploadController(FileUploadService fileUploadService, UserRepository userRepository) {
+        this.fileUploadService = fileUploadService;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Endpoint for uploading a file.
