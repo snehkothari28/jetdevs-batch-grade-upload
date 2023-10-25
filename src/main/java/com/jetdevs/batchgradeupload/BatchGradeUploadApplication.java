@@ -1,9 +1,11 @@
 package com.jetdevs.batchgradeupload;
 
 import com.jetdevs.batchgradeupload.entity.Role;
+import com.jetdevs.batchgradeupload.model.Roles;
 import com.jetdevs.batchgradeupload.model.UserDTO;
 import com.jetdevs.batchgradeupload.repository.RoleRepository;
 import com.jetdevs.batchgradeupload.service.UserManagementService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -30,6 +32,7 @@ public class BatchGradeUploadApplication implements CommandLineRunner {
     }
 
     // Method to initialize the database with roles and a super admin user
+    @Transactional
     private void initializeDatabase() {
         createRoles();       // Create roles: Super Admin, Admin, User
         createSuperAdmin();  // Create a super admin user and assign the super admin role
@@ -49,6 +52,7 @@ public class BatchGradeUploadApplication implements CommandLineRunner {
     }
 
     // Method to create roles (Super Admin, Admin, User) in the database
+    @Transactional
     private void createRoles() {
         // Create Super Admin role
         Role role = new Role();

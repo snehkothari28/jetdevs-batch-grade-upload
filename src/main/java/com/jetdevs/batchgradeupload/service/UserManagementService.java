@@ -51,12 +51,28 @@ public class UserManagementService {
         this.hmac512PasswordEncoder = new Hmac512PasswordEncoder(salt);
         this.userRepository = userRepository;
 
+        // Create Super Admin role
+        Role superAdminRole = new Role();
+        superAdminRole.setId(1);
+        superAdminRole.setName("Super Admin");
+        superAdminRole.setStatus(true);
+
+        // Create Admin role
+        Role adminRole = new Role();
+        adminRole.setId(2);
+        adminRole.setName("Admin");
+        adminRole.setStatus(true);
+
+        // Create User role
+        Role userRole = new Role();
+        userRole.setId(3);
+        userRole.setName("User");
 
         if (!environment.matchesProfiles("test")) {
             // Initialize roles from the repository
-            userRole = roleRepository.findById(3).orElse(new Role());
-            superAdminRole = roleRepository.findById(1).orElse(new Role());
-            adminRole = roleRepository.findById(2).orElse(new Role());
+            this.superAdminRole = roleRepository.findById(1).orElse(superAdminRole);
+            this.adminRole = roleRepository.findById(2).orElse(adminRole);
+            this.userRole = roleRepository.findById(3).orElse(userRole);
         }
     }
 
